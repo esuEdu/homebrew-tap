@@ -1,0 +1,65 @@
+name: update
+
+# Moves the formula to wraith's latest release (pre-releases are ignored). Before it
+# commits, it checks the tarball against the release's checksums.txt and its build
+# provenance attestation, then builds and tests the formula. It uses this repository's
+# own token: wraith's release workflow holds no secret for the tap.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Latest wraith release
+        id: latest
+        run: |
+          tag=$(gh api repos/esuEdu/wraith/releases/latest --jq .tag_name)
+          current=$(sed -nE 's#.*/releases/download/([^/]+)/.*#\1#p' Formula/wraith.rb)
+          echo "latest $tag, formula $current"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if [ "$tag" = "$current" ]; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+      - name: Download and verify the release
+        if: steps.latest.outputs.changed == 'true'
+        env:
+          TAG: ${{ steps.latest.outputs.tag }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/release" && cd "$RUNNER_TEMP/release"
+          gh release download "$TAG" --repo esuEdu/wraith --pattern "wraith-$TAG.tar.gz" --pattern checksums.txt
+          shasum -a 256 -c checksums.txt
+          gh attestation verify "wraith-$TAG.tar.gz" --repo esuEdu/wraith
+          echo "SHA=$(shasum -a 256 "wraith-$TAG.tar.gz" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - name: Update the formula
+        if: steps.latest.outputs.changed == 'true'
+        env:
+          TAG: ${{ steps.latest.outputs.tag }}
+        run: |
+          sed -i '' -E "s#^  url \".*\"#  url \"https://github.com/esuEdu/wraith/releases/download/$TAG/wraith-$TAG.tar.gz\"#" Formula/wraith.rb
+          sed -i '' -E "s#^  sha256 \".*\"#  sha256 \"$SHA\"#" Formula/wraith.rb
+          git diff
+      - name: Build and test
+        if: steps.latest.outputs.changed == 'true'
+        run: scripts/test-formula.sh
+      - name: Commit
+        if: steps.latest.outputs.changed == 'true'
+        env:
+          TAG: ${{ steps.latest.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "wraith ${TAG#v}"
+          git push origin HEAD:main
