@@ -1,8 +1,8 @@
 class Wraith < Formula
   desc "Terminal proxy for macOS: inspect one source, route chosen hosts around the VPN"
   homepage "https://esuedu.github.io/wraith/"
-  url "https://github.com/esuEdu/wraith/releases/download/v1.4.0/wraith-v1.4.0.tar.gz"
-  sha256 "d3f74a3bcec04449aef112c0b60aef36468f7071727454f47a43e018dbbb428c"
+  url "https://github.com/esuEdu/wraith/releases/download/v1.5.0/wraith-v1.5.0.tar.gz"
+  sha256 "3851ef13c01ef4dc097789d62d408dca1a67adcd5ef20d3bfc6e6b329d62e9f7"
   license "MIT"
   head "https://github.com/esuEdu/wraith.git", branch: "main"
 
