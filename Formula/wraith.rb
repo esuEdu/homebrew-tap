@@ -1,8 +1,8 @@
 class Wraith < Formula
-  desc "Terminal proxy for macOS: inspect one source, route chosen hosts around the VPN"
+  desc "Terminal proxy for macOS that inspects HTTPS from one source you choose"
   homepage "https://esuedu.github.io/wraith/"
-  url "https://github.com/esuEdu/wraith/releases/download/v1.5.1/wraith-v1.5.1.tar.gz"
-  sha256 "55205645e78c1190936e99cafa5a907f3df3351877655d60f55fa95e58c01004"
+  url "https://github.com/esuEdu/wraith/releases/download/v2.0.0/wraith-v2.0.0.tar.gz"
+  sha256 "bf6121fbe2e90f611851681e1ea0bbc6ad0de006b635d71e8560b63240c00a43"
   license "MIT"
   head "https://github.com/esuEdu/wraith.git", branch: "main"
 
@@ -32,8 +32,7 @@ class Wraith < Formula
   test do
     ENV["WRAITH_HOME"] = testpath/"wraith"
     assert_match "wraith v#{version}", shell_output("#{bin}/wraith version")
-    system bin/"wraith", "bypass", "add", "api.example.com"
-    assert_match "api.example.com", shell_output("#{bin}/wraith bypass list")
+    assert_match "removed in wraith v2.0.0", shell_output("#{bin}/wraith bypass 2>&1", 2)
     system bin/"wraith", "ca", "export", testpath/"ca.pem"
     assert_match "BEGIN CERTIFICATE", (testpath/"ca.pem").read
     refute_match "PRIVATE KEY", (testpath/"ca.pem").read
